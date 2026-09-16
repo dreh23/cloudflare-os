@@ -103,8 +103,20 @@ describe("bundled blueprint scripts", () => {
     temporaryDirectories.push(directory);
     // Two hidden backups: one from a process long gone, one from this process, standing in for an
     // import still running beside the one under test.
+    let deadPid = 3_000_000;
+    for (let candidate = 3_000_000; candidate < 4_000_000; candidate++) {
+      try {
+        process.kill(candidate, 0);
+      } catch (err: any) {
+        if (err?.code === "ESRCH") {
+          deadPid = candidate;
+          break;
+        }
+      }
+    }
     let running = `.example.backup-${process.pid}`;
-    for (let name of ["example", ".example.backup-123", running]) {
+    let dead = `.example.backup-${deadPid}`;
+    for (let name of ["example", dead, running]) {
       await mkdir(join(directory, name, "files"), {recursive: true});
       await writeFile(join(directory, name, "blueprint.json"),
         `${JSON.stringify(manifest, null, 2)}\n`);

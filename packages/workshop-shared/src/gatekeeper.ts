@@ -282,7 +282,17 @@ export function stripTrailingSlashes(value: string): string {
  */
 export function matchesResourceUrlPattern(pattern: string, url: string): boolean {
   const URLPatternCtor = (globalThis as { URLPattern?: new (p: string) => { test(u: string): boolean } }).URLPattern;
-  if (!URLPatternCtor) return false;
+  if (!URLPatternCtor) {
+    const regexStr = '^' + pattern
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*') + '$';
+    try {
+      const re = new RegExp(regexStr);
+      return re.test(url) || (url.endsWith('/') ? re.test(stripTrailingSlashes(url)) : re.test(url + '/'));
+    } catch {
+      return false;
+    }
+  }
   let compiled: { test(u: string): boolean };
   try {
     compiled = new URLPatternCtor(pattern);

@@ -52,6 +52,18 @@ const configurableUrl = (
 // `defaultValuesFromResourceUrl` (not a per-module hook) is the prefill path. This is that fallback:
 // URLPattern groups plus decodeURIComponent, ignoring numeric/wildcard names.
 function valuesFromUrlPattern(resourceUrl: string, resourceUrlPattern: string) {
+  if (typeof URLPattern === "undefined") {
+    const regexPattern = resourceUrlPattern.replace(/:([a-zA-Z0-9_]+)/g, '(?<$1>[^/]+)');
+    const match = new RegExp(regexPattern).exec(resourceUrl);
+    const groups = match?.groups ?? {};
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(groups)) {
+      if (typeof value === "string" && value.length > 0 && !/^[0-9]+$/.test(key)) {
+        out[key] = decodeURIComponent(value);
+      }
+    }
+    return out;
+  }
   const match = new URLPattern(resourceUrlPattern).exec(resourceUrl);
   const groups = match?.pathname.groups ?? {};
   const out: Record<string, string> = {};
