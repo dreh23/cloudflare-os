@@ -368,7 +368,7 @@ export function getModel(env: Cloudflare.Env, config: AiModelConfig,
   // Otherwise: when a platform AI Gateway is configured, route through it (platform-funded free
   // tier). The config's apiToken/apiUrl are ignored in that mode.
   let gwConfig = getAiGatewayConfig(env);
-  if (gwConfig) {
+  if (gwConfig && gwConfig.providers.has(config.provider)) {
     return getModelViaGateway(gwConfig, config, initiator, options);
   }
 
@@ -616,9 +616,27 @@ function getModelDirect(config: AiModelConfig, sessionAffinity?: string): ModelH
 
           ...window,
         },
-        ...(config.apiToken === ""
-            ? { apiKey: "unused", headers: { Authorization: null } }
-            : { apiKey: config.apiToken }),
+        ...(() => {
+          let cfClientId = "";
+          let cfClientSecret = "";
+          if (typeof config.apiToken === "string" && config.apiToken.includes(":") && !config.apiToken.startsWith("http")) {
+            [cfClientId, cfClientSecret] = config.apiToken.split(":");
+          }
+          if (cfClientId && cfClientSecret) {
+            const headers: ProviderHeaders = {
+              Authorization: null,
+              "CF-Access-Client-Id": cfClientId,
+              "CF-Access-Client-Secret": cfClientSecret,
+            };
+            return {
+              apiKey: "unused",
+              headers,
+            };
+          }
+          return config.apiToken === ""
+            ? { apiKey: "unused", headers: { Authorization: null } as ProviderHeaders }
+            : { apiKey: config.apiToken };
+        })(),
         sessionAffinity,
       });
     case "openai":
