@@ -368,7 +368,7 @@ export function getModel(env: Cloudflare.Env, config: AiModelConfig,
   // Otherwise: when a platform AI Gateway is configured, route through it (platform-funded free
   // tier). The config's apiToken/apiUrl are ignored in that mode.
   let gwConfig = getAiGatewayConfig(env);
-  if (gwConfig && (config.apiUrl ? false : true)) {
+  if (gwConfig && !config.apiUrl) {
     return getModelViaGateway(gwConfig, config, initiator, options);
   }
 
